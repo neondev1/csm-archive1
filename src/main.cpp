@@ -1,4 +1,5 @@
 #include "main.h"
+#include "autonomous.h"
 
 using namespace pros;
 
@@ -14,10 +15,7 @@ void autonomous() {}
 
 void opcontrol() {
 	Controller master(E_CONTROLLER_MASTER);
-	Motor lf_motor(1);
-	Motor lr_motor(2);
-	Motor rf_motor(3);
-	Motor rr_motor(4);
+	Motors motors(1, 2, 3, 4);
 	int prev = 0;
 	while (true) {
 		int l_stick = master.get_analog(ANALOG_LEFT_Y);
@@ -29,10 +27,10 @@ void opcontrol() {
 			l_stick + ((r_stick > 0) ? 0 : -r_stick) :
 			-r_stick;
 		prev = l_stick;
-		lf_motor = l_motor;
-		lr_motor = l_motor;
-		rf_motor = r_motor;
-		rr_motor = r_motor;
+		motors.lf = l_motor;
+		motors.lr = l_motor;
+		motors.rf = r_motor;
+		motors.rr = r_motor;
 		delay(20);
 	}
 }
