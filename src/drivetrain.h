@@ -4,25 +4,31 @@
 
 #include "main.h"
 
-#define CIRCUMFERENCE 330.0
-#define TURN_LEN_STILL /*PLACEHOLDER*/ 0x28101A
-#define TURN_LEN_MOVING /*PLACEHOLDER*/ 0x28101A
+#define CIRCUMFERENCE 333.0
+#define TURN_LEN 956.0
+#define HALF_WIDTH 155.0
+#define PI 3.1416
 
 struct Drivetrain {
     Drivetrain(int, int, int, int);
     pros::Motor lf, lr, rf, rr;
+    // void offset_all(void);
+    void tare_position(void);
 };
-
 const int rpm[3] = {
     100, 200, 600
 };
-extern double* sin_tbl; // i am speed
+
+extern double* _cos; // i am speed
 
 int _min(int, int);
 int _max(int, int);
+int _abs(int);
 int min_max(int, int, int);
-void move_mm(pros::Motor&, int, int);
-void move_mm(struct Drivetrain&, int);
-void turn_deg(struct Drivetrain&, int, int, int);
+void move_mm(pros::Motor&, double, int);
+void move_mm(struct Drivetrain&, double);
+void turn_deg(struct Drivetrain&, int, int, double*, double*);
+void wait(pros::Motor&, double);
+void wait(struct Drivetrain&, double, double);
 
 #endif
