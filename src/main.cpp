@@ -13,7 +13,7 @@
 #define MOTOR_FLYWHEEL_F 14
 
 #define SENSOR_GYRO 10
-#define SENSOR_VISION 12
+#define SENSOR_VISION 2
 
 #define ADI_WALL    65
 #define ADI_HOOK    66
@@ -31,8 +31,8 @@ struct Drivetrain drive(
 	MOTOR_RF, 
 	MOTOR_RR);
 Motor
-	intake_l(MOTOR_INTAKE_L, E_MOTOR_GEAR_BLUE, 0), 
-	intake_r(MOTOR_INTAKE_R, E_MOTOR_GEAR_BLUE, 1),
+	intake_l(MOTOR_INTAKE_L, 0), 
+	intake_r(MOTOR_INTAKE_R, 1),
 	flywheel_u(MOTOR_FLYWHEEL_U, E_MOTOR_GEAR_BLUE, 0),
 	flywheel_l(MOTOR_FLYWHEEL_L, E_MOTOR_GEAR_BLUE, 0),
 	flywheel_f(MOTOR_FLYWHEEL_F, E_MOTOR_GEAR_BLUE, 0);
@@ -52,7 +52,8 @@ double* _cos = (double*)0;
 // Team selector, autonomous picker, skills toggle
 int team = 0, auton = 1, skills = 0;
 char *_team = "OFF", _auton = '1', _skills = ' ';
-vision_signature_s_t tri_sig = Vision::signature_from_utility(1, -8949, -1821, -5385, -9831, -1803, -5817, 1.000, 0);
+vision_signature_s_t tri_sig1 = Vision::signature_from_utility(1, -6311, -1093, -3702, -6471, -2387, -4429, 1.000, 0);
+vision_signature_s_t tri_sig2 = Vision::signature_from_utility(2, -6241, -1133, -3688, -7117, -327, -3722, 1.000, 0);
 // Odometry stuffs
 int16_t
 	* accel_x,
@@ -135,6 +136,8 @@ void initialize() {
 		}
 	} while (0);
 #endif
+	vision.set_signature(1, &tri_sig1);
+	vision.set_signature(2, &tri_sig2);
 	gyro.reset(1);
 	//accel_x = (int16_t*)malloc(8192 * sizeof(int16_t) / ODOMETER_DELAY);
 	//accel_y = (int16_t*)malloc(8192 * sizeof(int16_t) / ODOMETER_DELAY);
@@ -155,9 +158,9 @@ void competition_initialize() {
 // Distances and angles for moving
 int
 	auton_turn[10] =
-		{125, 30},
+		{125},
 	auton_dist[10] =
-		{-890, 500}
+		{-890}
 #ifndef DRIVETRAIN_2
 ,
 	auton_timeout[10] =
@@ -214,17 +217,34 @@ void autonomous() {
 		TURN(0);
 		flywheel_u = 127;
 		flywheel_l = 127;
-		delay(800);
+		delay(500);
 		flywheel_f = 127;
 		intake_l = 127;
 		intake_r = 127;
 		WAIT(0);
 		delay(500);
+		drive.lf.move_velocity(200);
+		drive.lr.move_velocity(200);
+		while (vision.get_by_size(0).left_coord > 192
+			 || vision.get_by_size(0).width < 40
+			 || vision.get_object_count() < 1);
+		drive.lf.move_velocity(0);
+		drive.lr.move_velocity(0);
+		delay(100);
+		drive.lf.move_velocity(200);
+		drive.rf.move_velocity(200);
+		drive.lr.move_velocity(200);
+		drive.rr.move_velocity(200);
+		while (vision.get_by_size(0).top_coord < 162);
+		drive.lf.move_velocity(0);
+		drive.rf.move_velocity(0);
+		drive.lr.move_velocity(0);
+		drive.rr.move_velocity(0);
+		delay(450);
+		intake_l = 0;
+		intake_r = 0;
 		drive.tare_position();
-		TURN(1);
-		WAIT(1);
-		drive.tare_position();
-		//TURN(2);
+		// TURN(2);
 		//WAIT(2);
 		// Move
 		//turn_deg(drive, turn_3, dist_3);
