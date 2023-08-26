@@ -53,18 +53,25 @@ int min_max(int num, int min, int max) {
     return _min(_max(num, min), max);
 }
 
+#ifndef DRIVETRAIN_2
+
 // Moves an individual motor.
 void move_mm(Motor& motor, double dist, int rpm) {
-    screen::print(E_TEXT_MEDIUM, motor.get_port() - 16, "%f", dist * 360.0 / CIRCUMFERENCE);
-    motor.move_relative(dist * 360.0 / CIRCUMFERENCE, rpm);
+    double pos = dist * 360.0 / CIRCUMFERENCE;
+    motor.move_relative(pos, rpm);
 }
 
 // Moves the entire drivetrain in one direction.
-void move_mm(struct Drivetrain& motors, double dist) {
+void move_mm(struct Drivetrain& motors, double dist, double* l_pos, double* r_pos) {
     move_mm(motors.lf, dist, rpm[E_MOTOR_GEAR_GREEN]);
     move_mm(motors.lr, dist, rpm[E_MOTOR_GEAR_GREEN]);
     move_mm(motors.rf, dist, rpm[E_MOTOR_GEAR_GREEN]);
     move_mm(motors.rr, dist, rpm[E_MOTOR_GEAR_GREEN]);
+    double pos = dist * 360.0 / CIRCUMFERENCE;
+    if (l_pos)
+        *l_pos = pos;
+    if (r_pos)
+        *r_pos = pos;
 }
 
 // General turning function; for fine tuning, address individual motors using `move_mm`.
@@ -103,17 +110,23 @@ void turn_deg(Drivetrain& motors, int angle, int dist, double* l_pos, double* r_
 }
 
 // Waits for a single motor to reach an absolute position specified by `dist`
-void wait(Motor& motor, double pos) {
-    for (;motor.get_position() - pos > 5.0
-       || motor.get_position() - pos < -5.0;)
-        delay(10);
+void wait(Motor& motor, double pos, int timeout) {
+    for (;(motor.get_position() - pos > 10.0
+        || motor.get_position() - pos < -10.0)
+        && millis() < timeout; delay(5))
+        lcd::print(0, "%09.0f/%09.0f", motor.get_position(), pos);
 }
 
 // Waits until all motors have reached positions specified by `lf`, `lr`, `rf`, and `rr`
-void wait(Drivetrain& motors, double l_pos, double r_pos) {
-    wait(motors.lf, l_pos);
-    wait(motors.lr, l_pos);
-    wait(motors.rf, r_pos);
-    wait(motors.rr, r_pos);
+void wait(Drivetrain& motors, int timeout, double l_pos, double r_pos) {
+    if (!timeout)
+        timeout = 2147483647;
+    int end = millis() + timeout;
+    wait(motors.lf, l_pos, end);
+    wait(motors.lr, l_pos, end);
+    wait(motors.rf, r_pos, end);
+    wait(motors.rr, r_pos, end);
     motors.tare_position();
 }
+
+#endif
