@@ -7,7 +7,7 @@
 #define DRIVETRAIN_2 // Must call `wait` after every move function
 
 #define CIRCUMFERENCE 333.0
-#define TURN_LEN 957.0
+#define TURN_LEN 478.0
 #define HALF_WIDTH 160.0
 #define PI 3.1416
 
@@ -21,7 +21,6 @@ const int rpm[3] = {
 };
 
 extern double* _cos; // i am speed
-extern int auton_timeout[10];
 
 int _min(int, int);
 int _max(int, int);

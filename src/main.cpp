@@ -12,15 +12,15 @@
 #define MOTOR_FLYWHEEL_L 13
 #define MOTOR_FLYWHEEL_F 14
 
-#define SENSOR_GYRO 10
-#define SENSOR_VISION 2
+#define SENSOR_VISION 02
+#define SENSOR_DIST   10
+#define SENSOR_GYRO   15
 
 #define ADI_WALL    65
 #define ADI_HOOK    66
 #define ADI_BALANCE 72
 
-#define AUTONOMOUS_DEBUG 1
-#define ODOMETER_DELAY 1 // Powers of 2 preferred
+#define SKILLS_MATCHLOAD_T 40
 
 using namespace pros;
 
@@ -37,6 +37,7 @@ Motor
 	flywheel_l(MOTOR_FLYWHEEL_L, E_MOTOR_GEAR_BLUE, 0),
 	flywheel_f(MOTOR_FLYWHEEL_F, E_MOTOR_GEAR_BLUE, 0);
 Vision vision(SENSOR_VISION);
+Distance dist(SENSOR_DIST);
 Imu gyro(SENSOR_GYRO);
 ADIDigitalOut
 	hook(ADI_HOOK),
@@ -54,14 +55,6 @@ int team = 0, auton = 1, skills = 0;
 char *_team = "OFF", _auton = '1', _skills = ' ';
 vision_signature_s_t tri_sig1 = Vision::signature_from_utility(1, -6311, -1093, -3702, -6471, -2387, -4429, 1.000, 0);
 vision_signature_s_t tri_sig2 = Vision::signature_from_utility(2, -6241, -1133, -3688, -7117, -327, -3722, 1.000, 0);
-// Odometry stuffs
-int16_t
-	* accel_x,
-	* accel_y,
-	* vel_x,
-	* vel_y,
-	displ_x = 0,
-	displ_y = 0;
 
 void btn2_cb(void) {
 	skills = !skills;
@@ -139,10 +132,6 @@ void initialize() {
 	vision.set_signature(1, &tri_sig1);
 	vision.set_signature(2, &tri_sig2);
 	gyro.reset(1);
-	//accel_x = (int16_t*)malloc(8192 * sizeof(int16_t) / ODOMETER_DELAY);
-	//accel_y = (int16_t*)malloc(8192 * sizeof(int16_t) / ODOMETER_DELAY);
-	//vel_x = (int16_t*)malloc(8192 * sizeof(int16_t) / ODOMETER_DELAY);
-	//vel_x = (int16_t*)malloc(8192 * sizeof(int16_t) / ODOMETER_DELAY);
 }
 
 void disabled() {
@@ -153,44 +142,6 @@ void disabled() {
 void competition_initialize() {
 	if (!_cos)
 		initialize();
-}
-
-// Distances and angles for moving
-int
-	auton_turn[10] =
-		{125},
-	auton_dist[10] =
-		{-890}
-#ifndef DRIVETRAIN_2
-,
-	auton_timeout[10] =
-		{0}
-#endif
-;
-int
-	skills_turn[10] =
-		{},
-	skills_dist[10] =
-		{}
-#ifndef DRIVETRAIN_2
-,
-	skills_timeout[10] =
-		{0}
-#endif
-;
-
-#define TURN(n) turn_deg(drive, auton_turn[n], auton_dist[n], &l_pos, &r_pos)
-#ifdef DRIVETRAIN_2
-#define WAIT(n) wait(drive, l_pos, r_pos)
-#else
-#define WAIT(n) wait(drive, auton_timeout[n], l_pos, r_pos)
-#endif
-// yes i'm lazy i know
-
-void accelerometer(void) {
-	for (;;delay(ODOMETER_DELAY)) {
-		
-	}
 }
 
 void autonomous() {
@@ -206,78 +157,119 @@ void autonomous() {
 	drive.lr.set_brake_mode(E_MOTOR_BRAKE_HOLD);
 	drive.rr.set_brake_mode(E_MOTOR_BRAKE_HOLD);
 	drive.tare_position();
+	gyro.tare_heading();
+	unsigned now = millis();
+	/*
 	if (skills) {
 
 	}
 	else if (team) {
-		
+
 	}
 	else if (auton) {
-		move_mm(drive, 10, &l_pos, &r_pos);
-		TURN(0);
-		flywheel_u = 127;
-		flywheel_l = 127;
-		delay(500);
-		flywheel_f = 127;
-		intake_l = 127;
-		intake_r = 127;
-		WAIT(0);
-		delay(500);
-		drive.lf.move_velocity(200);
-		drive.lr.move_velocity(200);
-		while (vision.get_by_size(0).left_coord > 192
-			 || vision.get_by_size(0).width < 40
-			 || vision.get_object_count() < 1);
-		drive.lf.move_velocity(0);
-		drive.lr.move_velocity(0);
-		delay(100);
-		drive.lf.move_velocity(200);
-		drive.rf.move_velocity(200);
-		drive.lr.move_velocity(200);
-		drive.rr.move_velocity(200);
-		while (vision.get_by_size(0).top_coord < 162);
+	*/
+		move_mm(drive, 875, &l_pos, &r_pos);
+		wait(drive, l_pos, r_pos);
+		drive.lf.move_velocity(-rpm[E_MOTOR_GEAR_GREEN]);
+		drive.rf.move_velocity(rpm[E_MOTOR_GEAR_GREEN]);
+		drive.lr.move_velocity(-rpm[E_MOTOR_GEAR_GREEN]);
+		drive.rr.move_velocity(rpm[E_MOTOR_GEAR_GREEN]);
+		for (;gyro.get_heading() > 285 || gyro.get_heading() < 265; delay(5));
 		drive.lf.move_velocity(0);
 		drive.rf.move_velocity(0);
 		drive.lr.move_velocity(0);
 		drive.rr.move_velocity(0);
-		delay(450);
+		intake_l = -127;
+		intake_r = -127;
+		delay(400);
+		drive.lf.move_velocity(rpm[E_MOTOR_GEAR_GREEN]);
+		drive.rf.move_velocity(rpm[E_MOTOR_GEAR_GREEN]);
+		drive.lr.move_velocity(rpm[E_MOTOR_GEAR_GREEN]);
+		drive.rr.move_velocity(rpm[E_MOTOR_GEAR_GREEN]);
+		delay(1000);
+		intake_l = 0;
+		intake_r = 0;
+		drive.lf.move_velocity(-50);
+		drive.rf.move_velocity(-rpm[E_MOTOR_GEAR_GREEN]);
+		drive.lr.move_velocity(-50);
+		drive.rr.move_velocity(-rpm[E_MOTOR_GEAR_GREEN]);
+		for (;vision.get_by_size(0).left_coord > 190
+			 || vision.get_by_size(0).width < 40
+			 || vision.get_object_count() < 1; delay(5));
+		drive.lf.move_velocity(0);
+		drive.rf.move_velocity(0);
+		drive.lr.move_velocity(0);
+		drive.rr.move_velocity(0);
+		intake_l = 127;
+		intake_r = 127;
+		delay(50);
+		drive.lf.move_velocity(rpm[E_MOTOR_GEAR_GREEN]);
+		drive.rf.move_velocity(rpm[E_MOTOR_GEAR_GREEN]);
+		drive.lr.move_velocity(rpm[E_MOTOR_GEAR_GREEN]);
+		drive.rr.move_velocity(rpm[E_MOTOR_GEAR_GREEN]);
+		for (;vision.get_by_size(0).top_coord < 162; delay(5));
+		drive.lf.move_velocity(0);
+		drive.rf.move_velocity(0);
+		drive.lr.move_velocity(0);
+		drive.rr.move_velocity(0);
+		flywheel_u = 0;
+		flywheel_l = 0;
+		flywheel_f = 0;
+		gyro.reset(0);
+		delay(750);
 		intake_l = 0;
 		intake_r = 0;
 		drive.tare_position();
-		// TURN(2);
-		//WAIT(2);
-		// Move
-		//turn_deg(drive, turn_3, dist_3);
-		// Intake L, R off
-		//intake_l = 0;
-		//intake_r = 0;
-		// Flywheel off
-		//flywheel_u = 0;
-		//flywheel_l = 0;
-		//flywheel_f = 0;
-		// Move
-		//turn_deg(drive, turn_4, dist_4);
-		// Intake L on
-		//intake_l = 127;
-		// Move
-		//turn_deg(drive, turn_4, dist_4);
-		// Intake R on
-		//intake_r = 127;
-		// Move
-		//intake lr off
-		//turn+move
-		//intake lr reverse
-		//turn+move
-		//intake lr off
-		//turn only
-		//move only
-		//deploy hook
-		//turn+move
+		turn_deg(drive, -70, -200, &l_pos, &r_pos);
+		delay(100);
+		flywheel_u = 127;
+		flywheel_l = 127;
+		wait(drive, l_pos, r_pos);
+		flywheel_f = 127;
+		intake_l = 127;
+		intake_r = 127;
+		delay(600);
+		drive.lf.move_velocity(-rpm[E_MOTOR_GEAR_GREEN]);
+		drive.rf.move_velocity(rpm[E_MOTOR_GEAR_GREEN]);
+		drive.lr.move_velocity(-rpm[E_MOTOR_GEAR_GREEN]);
+		drive.rr.move_velocity(rpm[E_MOTOR_GEAR_GREEN]);
+		delay(275);
+		drive.lf.move_velocity(0);
+		drive.rf.move_velocity(0);
+		drive.lr.move_velocity(0);
+		drive.rr.move_velocity(0);
+		delay(50);
+		drive.lf.move_velocity(rpm[E_MOTOR_GEAR_GREEN]);
+		drive.rf.move_velocity(rpm[E_MOTOR_GEAR_GREEN]);
+		drive.lr.move_velocity(rpm[E_MOTOR_GEAR_GREEN]);
+		drive.rr.move_velocity(rpm[E_MOTOR_GEAR_GREEN]);
+		for (;vision.get_by_size(0).top_coord < 148; delay(5));
+		drive.lf.move_velocity(0);
+		drive.rf.move_velocity(0);
+		drive.lr.move_velocity(0);
+		drive.rr.move_velocity(0);
+		delay(50);
+		gyro.tare_heading();
+		drive.lf.move_velocity(rpm[E_MOTOR_GEAR_GREEN]);
+		drive.rf.move_velocity(-rpm[E_MOTOR_GEAR_GREEN]);
+		drive.lr.move_velocity(rpm[E_MOTOR_GEAR_GREEN]);
+		drive.rr.move_velocity(-rpm[E_MOTOR_GEAR_GREEN]);
+		for (;gyro.get_heading() < 170; delay(5));
+		drive.lf.move_velocity(0);
+		drive.rf.move_velocity(0);
+		drive.lr.move_velocity(0);
+		drive.rr.move_velocity(0);
+		delay(50);
+		move_mm(drive, -50, &l_pos, &r_pos);
+		wait(drive, l_pos, r_pos);
+		hook.set_value(1);
+		move_mm(drive, 200, &l_pos, &r_pos);
+		wait(drive, l_pos, r_pos);
+	/*
 	}
 	else {
-
 	}
-	delay(5000);
+	*/
 	intake_l = 0;
 	intake_r = 0;
 	flywheel_u = 0;
@@ -287,6 +279,7 @@ void autonomous() {
 	drive.rf.set_brake_mode(mode);
 	drive.lr.set_brake_mode(mode);
 	drive.rr.set_brake_mode(mode);
+	lcd::print(7, "%d ms", millis() - now);
 }
 
 void opcontrol() {
@@ -310,6 +303,7 @@ void opcontrol() {
 			_flywheel = 127 * !_flywheel;
 			flywheel_u = _flywheel;
 			flywheel_l = _flywheel;
+			flywheel_f = _flywheel;
 		}
 		else if (digital_r2 && !master.get_digital(E_CONTROLLER_DIGITAL_R2))
 			digital_r2 = 0;
@@ -334,12 +328,10 @@ void opcontrol() {
 		else if (master.get_digital(E_CONTROLLER_DIGITAL_R1)) {
 			intake_l = -127;
 			intake_r = -127;
-			flywheel_f = -127;
 		}
 		else {
 			intake_l = _intake;
 			intake_r = _intake;
-			flywheel_f = _flywheel;
 		}
 		if (master.get_digital(E_CONTROLLER_DIGITAL_UP))
 			dir = 1;
@@ -354,10 +346,10 @@ void opcontrol() {
 		if (master.get_digital(E_CONTROLLER_DIGITAL_B))
 			balance.set_value(1);
 		if (master.get_digital_new_press(E_CONTROLLER_DIGITAL_Y)) {
-			// Testing area
-			autonomous();
+			// Testing area COMMENT THIS OUT BEFORE THE COMPETITION
+			// autonomous();
 		}
-		/* if (millis() % 6000 < 3000) {
+		if (millis() % 6000 < 3000) {
 			lcd::print(2, "LF     %3d%5.0f",
 				MOTOR_LF * (drive.lf.get_current_draw() != PROS_ERR), drive.lf.get_temperature());
 			lcd::print(3, "LR     %3d%5.0f",
@@ -381,6 +373,6 @@ void opcontrol() {
 			lcd::print(6, "FLW_F  %3d%5.0f",
 				MOTOR_FLYWHEEL_F * (flywheel_f.get_current_draw() != PROS_ERR), flywheel_f.get_temperature());
 			lcd::print(7,  "Ready | Selected program: %s%c%c", _team, _auton, _skills);
-		}*/
+		}
 	}
 }

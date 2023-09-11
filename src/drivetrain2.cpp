@@ -62,11 +62,9 @@ void turn_deg(Drivetrain& motors, int angle, int dist, double* l_pos, double* r_
 // Waits for a single motor to reach an absolute position specified by `dist`
 void wait(Motor& motor, double pos) {
     if (pos > 0)
-        for (;motor.get_position() < pos - 5.0; delay(5))
-            lcd::print(0, "%09.0f/%09.0f", motor.get_position(), pos);
+        for (;motor.get_position() < pos - 5.0; delay(5));
     else
-        for (;motor.get_position() > pos + 5.0; delay(5))
-            lcd::print(0, "%09.0f/%09.0f", motor.get_position(), pos);
+        for (;motor.get_position() > pos + 5.0; delay(5));
     motor.move_velocity(0);
 }
 
